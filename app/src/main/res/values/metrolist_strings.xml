@@ -1084,4 +1084,10 @@
     <string name="switch_to_list_view">Switch to list view</string>
     <string name="switch_to_grid_view">Switch to grid view</string>
     <string name="more_options">More options</string>
+    <!-- Lyric Share Customization -->
+    <string name="show_app_name">Show app name</string>
+    <string name="alignment">Text alignment</string>
+    <string name="align_left">Left</string>
+    <string name="align_center">Center</string>
+    <string name="align_right">Right</string>
 </resources>
