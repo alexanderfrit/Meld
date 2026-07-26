@@ -14,6 +14,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -164,17 +165,29 @@ internal fun LyricsLine(
     val itemModifier = modifier
         .fillMaxWidth()
         .onSizeChanged { onSizeChanged(it.height) }
-        .clip(RoundedCornerShape(8.dp))
+        .padding(vertical = 3.dp)
+        .clip(RoundedCornerShape(14.dp))
+        .border(
+            width = if (isSelected && isSelectionModeActive) 1.5.dp else 0.dp,
+            color = if (isSelected && isSelectionModeActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.75f) else Color.Transparent,
+            shape = RoundedCornerShape(14.dp)
+        )
         .combinedClickable(
             onClick = onClick,
             onLongClick = onLongClick
         )
-        .background(if (isSelected && isSelectionModeActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent)
+        .background(
+            if (isSelected && isSelectionModeActive) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+            } else {
+                Color.Transparent
+            }
+        )
         .padding(
-            start = when (lyricsTextPosition) { LyricsPosition.LEFT, LyricsPosition.RIGHT -> 11.dp; LyricsPosition.CENTER -> 24.dp },
-            end = when (lyricsTextPosition) { LyricsPosition.LEFT, LyricsPosition.RIGHT -> 11.dp; LyricsPosition.CENTER -> 24.dp },
+            start = when (lyricsTextPosition) { LyricsPosition.LEFT, LyricsPosition.RIGHT -> 14.dp; LyricsPosition.CENTER -> 24.dp },
+            end = when (lyricsTextPosition) { LyricsPosition.LEFT, LyricsPosition.RIGHT -> 14.dp; LyricsPosition.CENTER -> 24.dp },
             top = if (item.isBackground) 0.dp else 12.dp,
-            bottom = if (item.isBackground) 2.dp else 12.dp // simplified gap logic
+            bottom = if (item.isBackground) 2.dp else 12.dp
         )
 
     val agentAlignment = when {

@@ -69,11 +69,14 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import android.text.Layout
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
@@ -311,6 +314,7 @@ fun ExperimentalLyrics(
     var isSelectionModeActive by rememberSaveable { mutableStateOf(false) }
     val selectedIndices = remember { mutableStateListOf<Int>() }
     var showMaxSelectionToast by remember { mutableStateOf(false) }
+    val haptics = LocalHapticFeedback.current
     val isLyricsProviderShown = lyricsEntity != null && lyricsEntity.provider != "Unknown" && lyricsEntity.provider != "Manual" && !isSelectionModeActive
     var isAutoScrollEnabled by rememberSaveable { mutableStateOf(true) }
 
@@ -745,6 +749,7 @@ fun ExperimentalLyrics(
                                         onSizeChanged = { itemHeights[listIndex] = it },
                                         onClick = {
                                             if (isSelectionModeActive) {
+                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                 if (selectedIndices.contains(index)) {
                                                     selectedIndices.remove(index)
                                                     if (selectedIndices.isEmpty()) isSelectionModeActive = false
@@ -762,9 +767,17 @@ fun ExperimentalLyrics(
                                             }
                                         },
                                         onLongClick = {
+                                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                             if (!isSelectionModeActive) {
                                                 isSelectionModeActive = true
                                                 selectedIndices.add(index)
+                                            } else if (!selectedIndices.contains(index) && selectedIndices.size < maxSelectionLimit) {
+                                                selectedIndices.add(index)
+                                            } else if (selectedIndices.contains(index)) {
+                                                selectedIndices.remove(index)
+                                                if (selectedIndices.isEmpty()) isSelectionModeActive = false
+                                            } else {
+                                                showMaxSelectionToast = true
                                             }
                                         }
                                     )
@@ -779,7 +792,7 @@ fun ExperimentalLyrics(
         LyricsActionOverlay(
             modifier = Modifier.align(Alignment.BottomCenter),
             isAutoScrollEnabled = isAutoScrollEnabled, isSynced = isSynced,
-            isSelectionModeActive = isSelectionModeActive, anySelected = selectedIndices.isNotEmpty(),
+            isSelectionModeActive = isSelectionModeActive, selectedCount = selectedIndices.size,
             onSyncClick = {
                 flingJob?.cancel()
                 var target = scrollTargetIndex
@@ -830,34 +843,36 @@ fun ExperimentalLyrics(
             txt = txt, title = title, arts = arts, thumbnailUrl = mediaMetadata?.thumbnailUrl,
             lyricsTextPosition = lyricsTextPosition,
             onDismiss = { showColorPickerDialog = false },
-            onShare = { bgColor, textColor, secTextColor, style ->
+            onShare = { bgColor, textColor, secTextColor, style, alignment, showAppBranding ->
                 showColorPickerDialog = false
                 showProgressDialog = true
                 scope.launch {
                     try {
                         val image = ComposeToImage.createLyricsImage(
-                            context, mediaMetadata?.thumbnailUrl, title, arts, txt,
-                            (configuration.screenWidthDp * density.density).toInt(),
-                            (configuration.screenHeightDp * density.density).toInt(),
-                            bgColor.toArgb(),
-                            when(style) {
+                            context = context,
+                            coverArtUrl = mediaMetadata?.thumbnailUrl,
+                            songTitle = title,
+                            artistName = arts,
+                            lyrics = txt,
+                            width = (configuration.screenWidthDp * density.density).toInt(),
+                            height = (configuration.screenHeightDp * density.density).toInt(),
+                            backgroundColor = bgColor.toArgb(),
+                            backgroundStyle = when(style) {
                                 LyricsBackgroundStyle.SOLID -> LyricsBackgroundStyle.SOLID
                                 LyricsBackgroundStyle.BLUR -> LyricsBackgroundStyle.BLUR
                                 LyricsBackgroundStyle.GRADIENT -> LyricsBackgroundStyle.GRADIENT
                             },
-                            textColor.toArgb(), secTextColor.toArgb(),
-                            when (lyricsTextPosition) {
-                                LyricsPosition.LEFT -> Layout.Alignment.ALIGN_NORMAL
-                                LyricsPosition.CENTER -> Layout.Alignment.ALIGN_CENTER
+                            textColor = textColor.toArgb(),
+                            secondaryTextColor = secTextColor.toArgb(),
+                            lyricsAlignment = when (alignment) {
+                                TextAlign.Left, TextAlign.Start -> Layout.Alignment.ALIGN_NORMAL
+                                TextAlign.Center -> Layout.Alignment.ALIGN_CENTER
                                 else -> Layout.Alignment.ALIGN_OPPOSITE
-                            }
+                            },
+                            showAppBranding = showAppBranding
                         )
                         val uri = ComposeToImage.saveBitmapAsFile(context, image, "lyrics_${System.currentTimeMillis()}")
-                        context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
-                            type = "image/png"
-                            putExtra(Intent.EXTRA_STREAM, uri)
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        }, context.getString(R.string.share_lyrics)))
+                        ComposeToImage.shareLyricsImage(context, uri)
                     } catch (e: Exception) {
                         Toast.makeText(context, context.getString(R.string.failed_to_create_image, e.message), Toast.LENGTH_SHORT).show()
                     } finally {

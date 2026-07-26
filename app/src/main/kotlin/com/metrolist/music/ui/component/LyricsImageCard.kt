@@ -17,10 +17,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -158,20 +162,21 @@ fun LyricsImageCard(
     backgroundStyle: LyricsBackgroundStyle = LyricsBackgroundStyle.SOLID,
     textColor: Color? = null,
     secondaryTextColor: Color? = null,
-    textAlign: TextAlign = TextAlign.Center
+    textAlign: TextAlign = TextAlign.Start,
+    showAppBranding: Boolean = true
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
 
     val cardCornerRadius = 20.dp
-    val padding = 28.dp
-    val coverArtSize = 64.dp
+    val padding = 24.dp
+    val coverArtSize = 48.dp
 
     val defaultBgColor = if (darkBackground) Color(0xFF121212) else Color(0xFFF5F5F5)
     val backgroundSolidColor = backgroundColor ?: defaultBgColor
     
-    val mainTextColor = textColor ?: if (darkBackground) Color.White else Color.Black
-    val secondaryColor = secondaryTextColor ?: if (darkBackground) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.7f)
+    val mainTextColor = textColor ?: if (darkBackground) Color.White.copy(alpha = 0.75f) else Color.Black.copy(alpha = 0.75f)
+    val secondaryColor = secondaryTextColor ?: if (darkBackground) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f)
 
     val painter = rememberAsyncImagePainter(
         ImageRequest.Builder(context)
@@ -210,68 +215,36 @@ fun LyricsImageCard(
         }
     }
 
-    Box(
+    val cardSurfaceColor = when (backgroundStyle) {
+        LyricsBackgroundStyle.SOLID -> Color.Transparent
+        else -> Color.Black.copy(alpha = 0.35f)
+    }
+
+    Card(
+        shape = RoundedCornerShape(cardCornerRadius),
+        colors = CardDefaults.cardColors(containerColor = backgroundSolidColor),
         modifier = Modifier
-            .background(Color.Black) // Base background
-            .fillMaxSize(),
-        contentAlignment = Alignment.Center
+            .fillMaxWidth()
+            .wrapContentHeight()
     ) {
-        // Background Layer
-        Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            when (backgroundStyle) {
-                LyricsBackgroundStyle.SOLID -> {
-                    Box(modifier = Modifier.fillMaxSize().background(backgroundSolidColor))
-                }
-                LyricsBackgroundStyle.BLUR -> {
-                    Image(
-                        painter = painter,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .blur(50.dp) // High blur for background
-                            .background(Color.Black.copy(alpha = 0.3f)) // Overlay to ensure text readability
-                    )
-                }
-                LyricsBackgroundStyle.GRADIENT -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(gradientBrush ?: androidx.compose.ui.graphics.Brush.linearGradient(listOf(backgroundSolidColor, backgroundSolidColor)))
-                    )
-                }
-            }
-        }
-    
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .wrapContentHeight()
                 .clip(RoundedCornerShape(cardCornerRadius))
-                // For the card itself, we can make it slightly transparent or match the background style
-                // but usually the card IS the background cut out.
-                // Here we simulate the card being transparent so the background shows through,
-                // OR we redraw the background inside the card if we want the "card on background" look.
-                // Based on previous code, the card had its own background.
-                // Let's apply the same background logic to the card box.
         ) {
-             when (backgroundStyle) {
+            // Outer Background Layer
+            when (backgroundStyle) {
                 LyricsBackgroundStyle.SOLID -> {
-                    Box(modifier = Modifier.fillMaxSize().background(backgroundSolidColor))
+                    Box(modifier = Modifier.matchParentSize().background(backgroundSolidColor))
                 }
                 LyricsBackgroundStyle.BLUR -> {
-                    // For blur, we want the card to be a window to the blurred background?
-                    // Or have its own blurred background?
-                    // Typically "Share Lyrics" looks like a card on a background.
-                    // If we want the card to be seamless with the full image background, we can just use transparent.
-                    // But to ensure it looks like the generated image:
                     Image(
                         painter = painter,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .fillMaxSize()
+                            .matchParentSize()
                             .blur(50.dp)
                             .background(Color.Black.copy(alpha = 0.3f))
                     )
@@ -279,26 +252,29 @@ fun LyricsImageCard(
                 LyricsBackgroundStyle.GRADIENT -> {
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .background(gradientBrush ?: androidx.compose.ui.graphics.Brush.linearGradient(listOf(backgroundSolidColor, backgroundSolidColor)))
+                            .matchParentSize()
+                            .background(gradientBrush ?: Brush.linearGradient(listOf(backgroundSolidColor, backgroundSolidColor)))
                     )
                 }
             }
+
+            // Inner Card Surface Overlay
+            Box(modifier = Modifier.matchParentSize().background(cardSurfaceColor))
             
             // Border
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .matchParentSize()
                     .border(1.dp, mainTextColor.copy(alpha = 0.09f), RoundedCornerShape(cardCornerRadius))
             )
 
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                verticalArrangement = Arrangement.SpaceBetween
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(padding)
             ) {
-                // Header: Cover + Title/Artist aligned left
+                // Header: Cover + Title/Artist
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -311,10 +287,10 @@ fun LyricsImageCard(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(coverArtSize)
-                            .clip(RoundedCornerShape(3.dp))
-                            .border(1.dp, mainTextColor.copy(alpha = 0.16f), RoundedCornerShape(3.dp))
+                            .clip(RoundedCornerShape(4.dp))
+                            .border(1.dp, mainTextColor.copy(alpha = 0.16f), RoundedCornerShape(4.dp))
                     )
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.width(14.dp))
                     Column(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.Start,
@@ -323,102 +299,91 @@ fun LyricsImageCard(
                         Text(
                             text = mediaMetadata.title,
                             color = mainTextColor,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(bottom = 2.dp)
+                            modifier = Modifier.padding(bottom = 1.dp)
                         )
                         Text(
                             text = mediaMetadata.artists.joinToString { it.name },
                             color = secondaryColor,
-                            fontSize = 16.sp,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Normal,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
-                // Lyrics text (centered)
-                BoxWithConstraints(
+
+                // Subtle horizontal line
+                Box(
                     modifier = Modifier
-                        .weight(1f)
                         .fillMaxWidth()
-                        .padding(vertical = 6.dp),
-                    contentAlignment = when (textAlign) {
-                        TextAlign.Left, TextAlign.Start -> Alignment.CenterStart
-                        TextAlign.Right, TextAlign.End -> Alignment.CenterEnd
-                        else -> Alignment.Center
-                    }
+                        .padding(bottom = 16.dp)
+                        .height(1.dp)
+                        .background(mainTextColor.copy(alpha = 0.12f))
+                )
+
+                // Lyrics Body (YouTube Music style: 24sp bold text, tight wrapped line height 30sp, generous 16dp paragraph spacing between different lyric lines)
+                val fixedFontSize = 24.sp
+                val fixedLineHeight = 30.sp
+                val lines = lyricText.split("\n")
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = if (showAppBranding) 20.dp else 4.dp)
                 ) {
-                    val availableWidth = maxWidth
-                    val availableHeight = maxHeight
-                    val textStyle = TextStyle(
-                        color = mainTextColor,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = textAlign,
-                        letterSpacing = 0.005.em,
-                    )
-
-                    val textMeasurer = rememberTextMeasurer()
-                    val initialSize = when {
-                        lyricText.length < 50 -> 24.sp
-                        lyricText.length < 100 -> 20.sp
-                        lyricText.length < 200 -> 17.sp
-                        lyricText.length < 300 -> 15.sp
-                        else -> 13.sp
-                    }
-
-                    val dynamicFontSize = rememberAdjustedFontSize(
-                        text = lyricText,
-                        maxWidth = availableWidth - 8.dp,
-                        maxHeight = availableHeight - 8.dp,
-                        density = density,
-                        initialFontSize = initialSize,
-                        minFontSize = 18.sp,
-                        style = textStyle,
-                        textMeasurer = textMeasurer
-                    )
-
-                    Text(
-                        text = lyricText,
-                        style = textStyle.copy(
-                            fontSize = dynamicFontSize,
-                            lineHeight = dynamicFontSize.value.sp * 1.2f
-                        ),
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = textAlign,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                // Footer
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(22.dp)
-                            .clip(RoundedCornerShape(50))
-                            .background(secondaryColor),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.small_icon),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(16.dp),
-                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(backgroundSolidColor) // Try to use a contrasting color, fallback to solid bg color
+                    lines.forEach { line ->
+                        Text(
+                            text = line,
+                            style = TextStyle(
+                                color = mainTextColor,
+                                fontSize = fixedFontSize,
+                                lineHeight = fixedLineHeight,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = textAlign,
+                                letterSpacing = 0.005.em
+                            ),
+                            textAlign = textAlign,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
+                }
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                // Footer (Optional Branding - subtle and transparent)
+                if (showAppBranding) {
+                    val brandingAlpha = 0.45f
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(22.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(secondaryColor.copy(alpha = secondaryColor.alpha * brandingAlpha)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.small_icon),
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(backgroundSolidColor)
+                            )
+                        }
 
-                    Text(
-                        text = stringResource(R.string.app_name),
-                        color = secondaryColor,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Text(
+                            text = stringResource(R.string.app_name),
+                            color = secondaryColor.copy(alpha = secondaryColor.alpha * brandingAlpha),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
