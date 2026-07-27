@@ -486,52 +486,23 @@ internal fun LyricsColorPickerDialog(
                     .verticalScroll(rememberScrollState())
                     .padding(18.dp)
             ) {
-                // Header with Title & Action Pills
+                // Top Header Row: Title & Close Action
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        stringResource(R.string.customize_colors),
-                        style = MaterialTheme.typography.titleMedium,
+                        stringResource(R.string.share_lyrics),
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        FilledTonalButton(
-                            onClick = {
-                                val songLink = if (songId.isNotBlank()) "\nhttps://music.youtube.com/watch?v=$songId" else ""
-                                val intent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(Intent.EXTRA_TEXT, "\"$txt\"\n\n$title - $arts$songLink")
-                                }
-                                context.startActivity(Intent.createChooser(intent, null))
-                            },
-                            shape = RoundedCornerShape(16.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                            modifier = Modifier.height(34.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.share),
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = stringResource(R.string.share_as_text_action),
-                                style = MaterialTheme.typography.labelMedium
-                            )
-                        }
-                        IconButton(onClick = onDismiss, modifier = Modifier.size(34.dp)) {
-                            Icon(
-                                painter = painterResource(R.drawable.close),
-                                contentDescription = stringResource(R.string.cancel),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(34.dp)) {
+                        Icon(
+                            painter = painterResource(R.drawable.close),
+                            contentDescription = stringResource(R.string.cancel),
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
                 
@@ -590,7 +561,7 @@ internal fun LyricsColorPickerDialog(
                 
                 Spacer(Modifier.height(14.dp))
                 
-                // Segmented Options Card
+                // Card Style & Alignment Options Card
                 Surface(
                     shape = RoundedCornerShape(18.dp),
                     color = MaterialTheme.colorScheme.surfaceContainer,
@@ -615,7 +586,7 @@ internal fun LyricsColorPickerDialog(
                                 FilterChip(
                                     selected = isSelected,
                                     onClick = { bgStyle = style },
-                                    label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+                                    label = { Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1) },
                                     leadingIcon = {
                                         Icon(painter = painterResource(iconRes), contentDescription = null, modifier = Modifier.size(16.dp))
                                     },
@@ -624,52 +595,51 @@ internal fun LyricsColorPickerDialog(
                             }
                         }
 
-                        // Alignment & App Logo Control Row
+                        // Text Alignment Segmented Controls
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            val alignments = listOf(
+                                TextAlign.Start to stringResource(R.string.align_left),
+                                TextAlign.Center to stringResource(R.string.align_center),
+                                TextAlign.End to stringResource(R.string.align_right)
+                            )
+                            alignments.forEach { (align, label) ->
+                                val isSelected = selectedAlignment == align
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { selectedAlignment = align },
+                                    label = { Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+
+                        // Show App Logo Toggle Row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp, vertical = 2.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Text Alignment Segmented Buttons
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                val alignments = listOf(
-                                    TextAlign.Start to stringResource(R.string.align_left),
-                                    TextAlign.Center to stringResource(R.string.align_center),
-                                    TextAlign.End to stringResource(R.string.align_right)
-                                )
-                                alignments.forEach { (align, label) ->
-                                    val isSelected = selectedAlignment == align
-                                    FilterChip(
-                                        selected = isSelected,
-                                        onClick = { selectedAlignment = align },
-                                        label = { Text(label, style = MaterialTheme.typography.labelMedium) }
-                                    )
-                                }
-                            }
-
-                            // Show App Name Toggle Row
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(
-                                    stringResource(R.string.show_app_name),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Switch(
-                                    checked = showAppBranding,
-                                    onCheckedChange = { showAppBranding = it },
-                                    modifier = Modifier.scale(0.85f)
-                                )
-                            }
+                            Text(
+                                stringResource(R.string.show_app_name),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Switch(
+                                checked = showAppBranding,
+                                onCheckedChange = { showAppBranding = it }
+                            )
                         }
                     }
                 }
 
                 Spacer(Modifier.height(12.dp))
 
-                // Tabbed Expressive Color Selector & Concept 4 Segmented Palette Ribbon
+                // Tabbed Expressive Color Selector & Continuous Ribbon
                 Surface(
                     shape = RoundedCornerShape(18.dp),
                     color = MaterialTheme.colorScheme.surfaceContainer,
@@ -679,7 +649,7 @@ internal fun LyricsColorPickerDialog(
                         modifier = Modifier.padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Category Tabs: Background | Main Text | Secondary
+                        // Category Tabs: Card | Text | Subtext
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -694,13 +664,13 @@ internal fun LyricsColorPickerDialog(
                                 FilterChip(
                                     selected = isSelected,
                                     onClick = { activeColorTab = tabKey },
-                                    label = { Text(tabLabel, style = MaterialTheme.typography.labelMedium, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                                    label = { Text(tabLabel, style = MaterialTheme.typography.labelMedium, maxLines = 1, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
                                     modifier = Modifier.weight(1f)
                                 )
                             }
                         }
 
-                        // Concept 4: Continuous Horizontal Segmented Ribbon (With Pinned Custom '+' Swatch)
+                        // Swatches Ribbon with Pinned Custom '+' Swatch Tile
                         val (selectedColor, currentOptions) = when (activeColorTab) {
                             "text" -> previewTextColor to textOptions
                             "secondary" -> previewSecondaryTextColor to secondaryTextOptions
@@ -798,23 +768,51 @@ internal fun LyricsColorPickerDialog(
 
                 Spacer(Modifier.height(16.dp))
 
-                // Pinned Bottom Share Image Button
-                Button(
-                    onClick = {
-                        onShare(previewBackgroundColor, previewTextColor, previewSecondaryTextColor, bgStyle, selectedAlignment, showAppBranding)
-                    },
-                    shape = RoundedCornerShape(24.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
+                // Bottom Dual Action Bar: Share Text (Secondary Outlined) & Share Image (Primary Filled)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        painter = painterResource(R.drawable.share),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.share_as_image), style = MaterialTheme.typography.titleMedium)
+                    OutlinedButton(
+                        onClick = {
+                            val songLink = if (songId.isNotBlank()) "\nhttps://music.youtube.com/watch?v=$songId" else ""
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, "\"$txt\"\n\n$title - $arts$songLink")
+                            }
+                            context.startActivity(Intent.createChooser(intent, null))
+                        },
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.share),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.share_as_text_action), style = MaterialTheme.typography.titleSmall, maxLines = 1)
+                    }
+
+                    Button(
+                        onClick = {
+                            onShare(previewBackgroundColor, previewTextColor, previewSecondaryTextColor, bgStyle, selectedAlignment, showAppBranding)
+                        },
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.insert_photo),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.share_as_image), style = MaterialTheme.typography.titleSmall, maxLines = 1)
+                    }
                 }
             }
         }

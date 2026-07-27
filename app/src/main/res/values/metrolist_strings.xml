@@ -1093,9 +1093,9 @@
     <string name="share_to_instagram_story">Instagram Story</string>
     <string name="share_to_other_apps">Other Apps</string>
     <string name="save_to_gallery">Save to Gallery</string>
-    <string name="color_target_background">Background</string>
-    <string name="color_target_text">Main text</string>
-    <string name="color_target_subtext">Secondary</string>
+    <string name="color_target_background">Card</string>
+    <string name="color_target_text">Text</string>
+    <string name="color_target_subtext">Subtext</string>
     <string name="share_as_text_action">Share text</string>
     <string name="instagram_not_installed">Instagram is not installed</string>
 </resources>
