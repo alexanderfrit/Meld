@@ -811,7 +811,7 @@ fun ExperimentalLyrics(
                 val text = selectedIndices.sorted().mapNotNull { lines.getOrNull(it)?.text }.joinToString("\n")
                 if (text.isNotBlank()) {
                     shareDialogData = Triple(text, mediaMetadata?.title ?: "", mediaMetadata?.artists?.joinToString { it.name } ?: "")
-                    showShareDialog = true
+                    showColorPickerDialog = true
                 }
                 isSelectionModeActive = false; selectedIndices.clear()
             }
@@ -841,7 +841,7 @@ fun ExperimentalLyrics(
     if (showColorPickerDialog && shareDialogData != null) {
         val (txt, title, arts) = shareDialogData!!
         LyricsColorPickerDialog(
-            txt = txt, title = title, arts = arts, thumbnailUrl = mediaMetadata?.thumbnailUrl,
+            txt = txt, title = title, arts = arts, songId = mediaMetadata?.id ?: "", thumbnailUrl = mediaMetadata?.thumbnailUrl,
             lyricsTextPosition = lyricsTextPosition,
             onDismiss = { showColorPickerDialog = false },
             onShare = { bgColor, textColor, secTextColor, style, alignment, showAppBranding ->

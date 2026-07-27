@@ -1743,7 +1743,7 @@ fun OriginalLyrics(
                                 mediaMetadata?.title ?: "",
                                 mediaMetadata?.artists?.joinToString { it.name } ?: "",
                             )
-                        showShareDialog = true
+                        showColorPickerDialog = true
                     }
                     isSelectionModeActive = false
                     selectedIndices.clear()
@@ -1888,6 +1888,7 @@ fun OriginalLyrics(
                 txt = lyricsText,
                 title = songTitle,
                 arts = artists,
+                songId = mediaMetadata?.id ?: "",
                 thumbnailUrl = coverUrl,
                 lyricsTextPosition = lyricsTextPosition,
                 onDismiss = { showColorPickerDialog = false },

@@ -27,11 +27,14 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -376,6 +379,7 @@ internal fun LyricsColorPickerDialog(
     txt: String,
     title: String,
     arts: String,
+    songId: String = "",
     thumbnailUrl: String?,
     lyricsTextPosition: LyricsPosition = LyricsPosition.LEFT,
     onDismiss: () -> Unit,
@@ -389,13 +393,13 @@ internal fun LyricsColorPickerDialog(
     ) -> Unit
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val haptic = LocalHapticFeedback.current
     
     val pal = remember { mutableStateListOf<Color>() }
     var bgStyle by remember { mutableStateOf(LyricsBackgroundStyle.SOLID) }
     var previewBackgroundColor by remember { mutableStateOf(Color(0xFF242424)) }
-    var previewTextColor by remember { mutableStateOf(Color.White.copy(alpha = 0.75f)) }
-    var previewSecondaryTextColor by remember { mutableStateOf(Color.White.copy(alpha = 0.6f)) }
+    var previewTextColor by remember { mutableStateOf(Color.White) }
+    var previewSecondaryTextColor by remember { mutableStateOf(Color.White.copy(alpha = 0.70f)) }
     
     val initialAlign = when (lyricsTextPosition) {
         LyricsPosition.LEFT -> TextAlign.Start
@@ -404,7 +408,8 @@ internal fun LyricsColorPickerDialog(
     }
     var selectedAlignment by remember { mutableStateOf(initialAlign) }
     var showAppBranding by remember { mutableStateOf(true) }
-    
+    var activeColorTab by remember { mutableStateOf("bg") }
+
     LaunchedEffect(thumbnailUrl) {
         if (thumbnailUrl != null) {
             withContext(Dispatchers.IO) {
@@ -418,13 +423,23 @@ internal fun LyricsColorPickerDialog(
                             val hsv = FloatArray(3)
                             android.graphics.Color.colorToHSV(it.toArgb(), hsv)
                             hsv[1] > 0.2f
-                        }.take(5))
+                        }.take(6))
                     }
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to extract palette colors")
                 }
             }
         }
+    }
+
+    val backgroundOptions = remember(pal.toList()) {
+        (pal + listOf(Color(0xFF242424), Color(0xFF121212), Color.White, Color.Black, Color(0xFF1A237E), Color(0xFF004D40), Color(0xFF3E2723))).distinct().take(10)
+    }
+    val textOptions = remember(pal.toList()) {
+        (pal + listOf(Color.White, Color.White.copy(alpha = 0.85f), Color(0xFF121212), Color(0xFF1DB954), Color(0xFFFFD54F))).distinct().take(10)
+    }
+    val secondaryTextOptions = remember(pal.toList()) {
+        (pal.map { it.copy(alpha = 0.7f) } + listOf(Color.White.copy(alpha = 0.65f), Color(0xFF121212).copy(alpha = 0.65f), Color(0xFF1DB954).copy(alpha = 0.8f))).distinct().take(10)
     }
 
     var activeCustomColorTarget by remember { mutableStateOf<String?>(null) }
@@ -438,7 +453,17 @@ internal fun LyricsColorPickerDialog(
             onDismiss = { activeCustomColorTarget = null },
             onColorPicked = { pickedColor ->
                 when (activeCustomColorTarget) {
-                    "bg" -> previewBackgroundColor = pickedColor
+                    "bg" -> {
+                        previewBackgroundColor = pickedColor
+                        val lum = pickedColor.luminance()
+                        if (lum < 0.45f) {
+                            previewTextColor = Color.White
+                            previewSecondaryTextColor = Color.White.copy(alpha = 0.70f)
+                        } else {
+                            previewTextColor = Color(0xFF121212)
+                            previewSecondaryTextColor = Color(0xFF121212).copy(alpha = 0.70f)
+                        }
+                    }
                     "text" -> previewTextColor = pickedColor
                     "secondary" -> previewSecondaryTextColor = pickedColor
                 }
@@ -459,9 +484,9 @@ internal fun LyricsColorPickerDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .verticalScroll(rememberScrollState())
-                    .padding(20.dp)
+                    .padding(18.dp)
             ) {
-                // Header with Title & Close Button
+                // Header with Title & Action Pills
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -469,20 +494,50 @@ internal fun LyricsColorPickerDialog(
                 ) {
                     Text(
                         stringResource(R.string.customize_colors),
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    IconButton(onClick = onDismiss) {
-                        Icon(
-                            painter = painterResource(R.drawable.close),
-                            contentDescription = stringResource(R.string.cancel)
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        FilledTonalButton(
+                            onClick = {
+                                val songLink = if (songId.isNotBlank()) "\nhttps://music.youtube.com/watch?v=$songId" else ""
+                                val intent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, "\"$txt\"\n\n$title - $arts$songLink")
+                                }
+                                context.startActivity(Intent.createChooser(intent, null))
+                            },
+                            shape = RoundedCornerShape(16.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                            modifier = Modifier.height(34.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.share),
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = stringResource(R.string.share_as_text_action),
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                        IconButton(onClick = onDismiss, modifier = Modifier.size(34.dp)) {
+                            Icon(
+                                painter = painterResource(R.drawable.close),
+                                contentDescription = stringResource(R.string.cancel),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
                 
                 Spacer(Modifier.height(12.dp))
                 
-                // Ambient Gradient Color Calculations for Preview Frame
+                // Ambient Gradient Calculations
                 val ambientTopColor = remember(previewBackgroundColor) {
                     val hsv = FloatArray(3)
                     android.graphics.Color.colorToHSV(previewBackgroundColor.toArgb(), hsv)
@@ -533,147 +588,229 @@ internal fun LyricsColorPickerDialog(
                     )
                 }
                 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(14.dp))
                 
-                // Grouped Options Section Card
+                // Segmented Options Card
                 Surface(
                     shape = RoundedCornerShape(18.dp),
                     color = MaterialTheme.colorScheme.surfaceContainer,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
-                        modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Background Style Section
-                        Column {
-                            Text(
-                                stringResource(R.string.player_background_style),
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.horizontalScroll(rememberScrollState())
-                            ) {
-                                LyricsBackgroundStyle.entries.forEach { style ->
-                                    val label = when(style) {
-                                        LyricsBackgroundStyle.SOLID -> stringResource(R.string.player_background_solid)
-                                        LyricsBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
-                                        else -> stringResource(R.string.gradient)
-                                    }
-                                    FilterChip(
-                                        selected = bgStyle == style,
-                                        onClick = { bgStyle = style },
-                                        label = { Text(label) }
-                                    )
+                        // Background Style Segmented Controls
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            LyricsBackgroundStyle.entries.forEach { style ->
+                                val (label, iconRes) = when(style) {
+                                    LyricsBackgroundStyle.SOLID -> stringResource(R.string.player_background_solid) to R.drawable.palette
+                                    LyricsBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur) to R.drawable.image
+                                    else -> stringResource(R.string.gradient) to R.drawable.sparkles
                                 }
-                            }
-                        }
-
-                        // Text Alignment Section
-                        Column {
-                            Text(
-                                stringResource(R.string.alignment),
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                val isSelected = bgStyle == style
                                 FilterChip(
-                                    selected = selectedAlignment == TextAlign.Start || selectedAlignment == TextAlign.Left,
-                                    onClick = { selectedAlignment = TextAlign.Start },
-                                    label = { Text(stringResource(R.string.align_left)) }
-                                )
-                                FilterChip(
-                                    selected = selectedAlignment == TextAlign.Center,
-                                    onClick = { selectedAlignment = TextAlign.Center },
-                                    label = { Text(stringResource(R.string.align_center)) }
-                                )
-                                FilterChip(
-                                    selected = selectedAlignment == TextAlign.End || selectedAlignment == TextAlign.Right,
-                                    onClick = { selectedAlignment = TextAlign.End },
-                                    label = { Text(stringResource(R.string.align_right)) }
+                                    selected = isSelected,
+                                    onClick = { bgStyle = style },
+                                    label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+                                    leadingIcon = {
+                                        Icon(painter = painterResource(iconRes), contentDescription = null, modifier = Modifier.size(16.dp))
+                                    },
+                                    modifier = Modifier.weight(1f)
                                 )
                             }
                         }
 
-                        // Show App Name Toggle Row
+                        // Alignment & App Logo Control Row
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                stringResource(R.string.show_app_name),
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Switch(
-                                checked = showAppBranding,
-                                onCheckedChange = { showAppBranding = it }
-                            )
+                            // Text Alignment Segmented Buttons
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                val alignments = listOf(
+                                    Triple(TextAlign.Start, R.drawable.align_left, stringResource(R.string.align_left)),
+                                    Triple(TextAlign.Center, R.drawable.align_center, stringResource(R.string.align_center)),
+                                    Triple(TextAlign.End, R.drawable.align_right, stringResource(R.string.align_right))
+                                )
+                                alignments.forEach { (align, iconRes, contentDesc) ->
+                                    val isSelected = selectedAlignment == align
+                                    IconButton(
+                                        onClick = { selectedAlignment = align },
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(
+                                                if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                                                else Color.Transparent
+                                            )
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(iconRes),
+                                            contentDescription = contentDesc,
+                                            tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Show App Name Toggle Row
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    stringResource(R.string.show_app_name),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Switch(
+                                    checked = showAppBranding,
+                                    onCheckedChange = { showAppBranding = it },
+                                    modifier = Modifier.scale(0.85f)
+                                )
+                            }
                         }
                     }
                 }
 
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(12.dp))
 
-                // Grouped Color Pickers Section Card
+                // Tabbed Expressive Color Selector & Concept 4 Segmented Palette Ribbon
                 Surface(
                     shape = RoundedCornerShape(18.dp),
                     color = MaterialTheme.colorScheme.surfaceContainer,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
-                        modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        val backgroundOptions = (pal + listOf(Color(0xFF242424), Color(0xFF121212), Color.White, Color.Black, Color(0xFFF5F5F5))).distinct().take(8)
-                        ColorPickerRow(
-                            title = stringResource(R.string.background_color),
-                            selectedColor = previewBackgroundColor,
-                            colorList = backgroundOptions,
-                            onColorSelected = { previewBackgroundColor = it },
-                            onCustomColorRequested = {
-                                customPickerInitialColor = previewBackgroundColor
-                                customPickerPresets = backgroundOptions
-                                activeCustomColorTarget = "bg"
+                        // Category Tabs: Background | Main Text | Secondary
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            val tabs = listOf(
+                                "bg" to stringResource(R.string.color_target_background),
+                                "text" to stringResource(R.string.color_target_text),
+                                "secondary" to stringResource(R.string.color_target_subtext)
+                            )
+                            tabs.forEach { (tabKey, tabLabel) ->
+                                val isSelected = activeColorTab == tabKey
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { activeColorTab = tabKey },
+                                    label = { Text(tabLabel, style = MaterialTheme.typography.labelMedium, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                                    modifier = Modifier.weight(1f)
+                                )
                             }
-                        )
+                        }
 
-                        val textOptions = (pal + listOf(Color.White.copy(alpha = 0.75f), Color.White.copy(alpha = 0.9f), Color.White, Color.Black, Color(0xFF1DB954))).distinct().take(8)
-                        ColorPickerRow(
-                            title = stringResource(R.string.text_color),
-                            selectedColor = previewTextColor,
-                            colorList = textOptions,
-                            onColorSelected = { previewTextColor = it },
-                            onCustomColorRequested = {
-                                customPickerInitialColor = previewTextColor
-                                customPickerPresets = textOptions
-                                activeCustomColorTarget = "text"
-                            }
-                        )
+                        // Concept 4: Continuous Horizontal Segmented Ribbon (With Pinned Custom '+' Swatch)
+                        val (selectedColor, currentOptions) = when (activeColorTab) {
+                            "text" -> previewTextColor to textOptions
+                            "secondary" -> previewSecondaryTextColor to secondaryTextOptions
+                            else -> previewBackgroundColor to backgroundOptions
+                        }
 
-                        val secondaryTextOptions = (pal.map { it.copy(alpha = 0.6f) } + listOf(Color.White.copy(alpha = 0.6f), Color.White.copy(alpha = 0.4f), Color.Black.copy(alpha = 0.6f), Color(0xFF1DB954))).distinct().take(8)
-                        ColorPickerRow(
-                            title = stringResource(R.string.secondary_text_color),
-                            selectedColor = previewSecondaryTextColor,
-                            colorList = secondaryTextOptions,
-                            onColorSelected = { previewSecondaryTextColor = it },
-                            onCustomColorRequested = {
-                                customPickerInitialColor = previewSecondaryTextColor
-                                customPickerPresets = secondaryTextOptions
-                                activeCustomColorTarget = "secondary"
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .horizontalScroll(rememberScrollState())
+                                    .padding(8.dp)
+                            ) {
+                                // Pinned Custom '+' Color Button (ALWAYS VISIBLE AS FIRST TILE!)
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            Brush.sweepGradient(
+                                                listOf(Color.Red, Color.Yellow, Color.Green, Color.Cyan, Color.Blue, Color.Magenta, Color.Red)
+                                            )
+                                        )
+                                        .clickable {
+                                            customPickerInitialColor = selectedColor
+                                            customPickerPresets = currentOptions
+                                            activeCustomColorTarget = activeColorTab
+                                        }
+                                        .padding(2.5.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("+", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                    }
+                                }
+
+                                // Swatch Tiles
+                                currentOptions.forEach { color ->
+                                    val isSelected = selectedColor == color
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clip(CircleShape)
+                                            .background(color)
+                                            .border(
+                                                width = if (isSelected) 2.5.dp else 1.dp,
+                                                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.25f),
+                                                shape = CircleShape
+                                            )
+                                            .clickable {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                when (activeColorTab) {
+                                                    "bg" -> {
+                                                        previewBackgroundColor = color
+                                                        val lum = color.luminance()
+                                                        if (lum < 0.45f) {
+                                                            previewTextColor = Color.White
+                                                            previewSecondaryTextColor = Color.White.copy(alpha = 0.70f)
+                                                        } else {
+                                                            previewTextColor = Color(0xFF121212)
+                                                            previewSecondaryTextColor = Color(0xFF121212).copy(alpha = 0.70f)
+                                                        }
+                                                    }
+                                                    "text" -> previewTextColor = color
+                                                    "secondary" -> previewSecondaryTextColor = color
+                                                }
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (isSelected) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.check),
+                                                contentDescription = null,
+                                                tint = if (color.luminance() > 0.5f) Color.Black else Color.White,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                }
                             }
-                        )
+                        }
                     }
                 }
 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(16.dp))
 
-                // Share Button with Icon
+                // Pinned Bottom Share Image Button
                 Button(
                     onClick = {
                         onShare(previewBackgroundColor, previewTextColor, previewSecondaryTextColor, bgStyle, selectedAlignment, showAppBranding)
@@ -689,7 +826,7 @@ internal fun LyricsColorPickerDialog(
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.share), style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.share_as_image), style = MaterialTheme.typography.titleMedium)
                 }
             }
         }
