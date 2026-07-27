@@ -19,8 +19,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.verticalDrag
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -646,21 +645,17 @@ fun ExperimentalLyrics(
                             }
                         }
                     })
-                    .pointerInput(Unit) {
-                        awaitPointerEventScope {
-                            while (true) {
-                                val down = awaitFirstDown(requireUnconsumed = false)
-                                if (isInitialLayout) continue
-                                flingJob?.cancel()
-                                velocityTracker.resetTracking()
-                                isAutoScrollEnabled = false
-                                lastPreviewTime = System.currentTimeMillis()
-                                velocityTracker.addPosition(down.uptimeMillis, down.position)
-                                verticalDrag(down.id) { change ->
-                                    userManualOffset = (userManualOffset + change.positionChange().y).coerceIn(safeMinOffset, safeMaxOffset)
-                                    velocityTracker.addPosition(change.uptimeMillis, change.position)
-                                    change.consume()
+                    .pointerInput(isInitialLayout, safeMinOffset, safeMaxOffset) {
+                        detectVerticalDragGestures(
+                            onDragStart = {
+                                if (!isInitialLayout) {
+                                    flingJob?.cancel()
+                                    velocityTracker.resetTracking()
+                                    isAutoScrollEnabled = false
+                                    lastPreviewTime = System.currentTimeMillis()
                                 }
+                            },
+                            onDragEnd = {
                                 val velocity = velocityTracker.calculateVelocity().y
                                 flingJob = scope.launch {
                                     AnimationState(initialValue = userManualOffset, initialVelocity = velocity).animateDecay(decayAnimSpec) {
@@ -669,8 +664,14 @@ fun ExperimentalLyrics(
                                         if (value != clamped) cancelAnimation()
                                     }
                                 }
+                            },
+                            onVerticalDrag = { change, dragAmount ->
+                                if (!isInitialLayout) {
+                                    userManualOffset = (userManualOffset + dragAmount).coerceIn(safeMinOffset, safeMaxOffset)
+                                    velocityTracker.addPosition(change.uptimeMillis, change.position)
+                                }
                             }
-                        }
+                        )
                     }
             ) {
                 val lyricsOffsetVal = (currentSong?.song?.lyricsOffset ?: 0).toLong()
@@ -713,7 +714,7 @@ fun ExperimentalLyrics(
                         Box(
                             modifier = Modifier.fillMaxWidth().layout { m, c -> 
                                 val p = m.measure(c.copy(maxHeight = Constraints.Infinity))
-                                layout(p.width, 0) { p.place(0, 0) }
+                                layout(p.width, p.height) { p.place(0, 0) }
                             }.offset { IntOffset(0, (animatedOffset + userManualOffset).roundToInt()) }
                         ) {
                             when (listItem) {
