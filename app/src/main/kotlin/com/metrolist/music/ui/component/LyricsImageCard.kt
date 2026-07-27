@@ -299,8 +299,8 @@ fun LyricsImageCard(
                         Text(
                             text = mediaMetadata.title,
                             color = mainTextColor,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.padding(bottom = 1.dp)
@@ -308,7 +308,7 @@ fun LyricsImageCard(
                         Text(
                             text = mediaMetadata.artists.joinToString { it.name },
                             color = secondaryColor,
-                            fontSize = 13.sp,
+                            fontSize = 11.5.sp,
                             fontWeight = FontWeight.Normal,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis

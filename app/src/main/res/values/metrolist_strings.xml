@@ -1090,4 +1090,9 @@
     <string name="align_left">Left</string>
     <string name="align_center">Center</string>
     <string name="align_right">Right</string>
+    <string name="share_to_instagram_story">Instagram Story</string>
+    <string name="share_to_other_apps">Other Apps</string>
+    <string name="save_to_gallery">Save to Gallery</string>
+    <string name="saved_to_gallery">Saved to Gallery</string>
+    <string name="instagram_not_installed">Instagram is not installed</string>
 </resources>

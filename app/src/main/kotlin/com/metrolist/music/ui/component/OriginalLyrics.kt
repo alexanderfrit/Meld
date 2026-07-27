@@ -1923,7 +1923,7 @@ fun OriginalLyrics(
                             val timestamp = System.currentTimeMillis()
                             val filename = "lyrics_$timestamp"
                             val uri = ComposeToImage.saveBitmapAsFile(context, image, filename)
-                            ComposeToImage.shareLyricsImage(context, uri)
+                            ComposeToImage.shareToSystemChooser(context, uri)
                         } catch (e: Exception) {
                             Toast
                                 .makeText(

@@ -52,6 +52,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -69,6 +70,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalConfiguration
@@ -427,10 +429,12 @@ internal fun LyricsColorPickerDialog(
 
     var activeCustomColorTarget by remember { mutableStateOf<String?>(null) }
     var customPickerInitialColor by remember { mutableStateOf(Color.White) }
+    var customPickerPresets by remember { mutableStateOf<List<Color>>(emptyList()) }
 
     if (activeCustomColorTarget != null) {
         CustomColorPickerDialog(
             initialColor = customPickerInitialColor,
+            presetColors = customPickerPresets,
             onDismiss = { activeCustomColorTarget = null },
             onColorPicked = { pickedColor ->
                 when (activeCustomColorTarget) {
@@ -478,36 +482,55 @@ internal fun LyricsColorPickerDialog(
                 
                 Spacer(Modifier.height(12.dp))
                 
+                // Ambient Gradient Color Calculations for Preview Frame
+                val ambientTopColor = remember(previewBackgroundColor) {
+                    val hsv = FloatArray(3)
+                    android.graphics.Color.colorToHSV(previewBackgroundColor.toArgb(), hsv)
+                    hsv[2] = (hsv[2] * 0.92f).coerceIn(0.15f, 0.95f)
+                    Color(android.graphics.Color.HSVToColor(hsv))
+                }
+                val ambientBottomColor = remember(previewBackgroundColor) {
+                    val hsv = FloatArray(3)
+                    android.graphics.Color.colorToHSV(previewBackgroundColor.toArgb(), hsv)
+                    hsv[2] = (hsv[2] * 0.78f).coerceIn(0.10f, 0.82f)
+                    hsv[1] = (hsv[1] * 1.05f).coerceIn(0f, 1f)
+                    Color(android.graphics.Color.HSVToColor(hsv))
+                }
+                val ambientGradientBrush = remember(ambientTopColor, ambientBottomColor) {
+                    Brush.verticalGradient(listOf(ambientTopColor, ambientBottomColor))
+                }
+
                 // Live Dynamic Card Preview Surface Container
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = Color.Black.copy(alpha = 0.4f),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .wrapContentHeight()
-                            .padding(6.dp)
-                    ) {
-                        LyricsImageCard(
-                            lyricText = txt,
-                            mediaMetadata = MediaMetadata(
-                                id = "",
-                                title = title,
-                                artists = listOf(MediaMetadata.Artist(name = arts, id = null)),
-                                thumbnailUrl = thumbnailUrl,
-                                duration = 0
-                            ),
-                            darkBackground = true,
-                            backgroundColor = previewBackgroundColor,
-                            backgroundStyle = bgStyle,
-                            textColor = previewTextColor,
-                            secondaryTextColor = previewSecondaryTextColor,
-                            textAlign = selectedAlignment,
-                            showAppBranding = showAppBranding
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(
+                            when (bgStyle) {
+                                LyricsBackgroundStyle.SOLID -> ambientGradientBrush
+                                else -> Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.6f), Color.Black.copy(alpha = 0.8f)))
+                            }
                         )
-                    }
+                        .padding(14.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LyricsImageCard(
+                        lyricText = txt,
+                        mediaMetadata = MediaMetadata(
+                            id = "",
+                            title = title,
+                            artists = listOf(MediaMetadata.Artist(name = arts, id = null)),
+                            thumbnailUrl = thumbnailUrl,
+                            duration = 0
+                        ),
+                        darkBackground = true,
+                        backgroundColor = previewBackgroundColor,
+                        backgroundStyle = bgStyle,
+                        textColor = previewTextColor,
+                        secondaryTextColor = previewSecondaryTextColor,
+                        textAlign = selectedAlignment,
+                        showAppBranding = showAppBranding
+                    )
                 }
                 
                 Spacer(Modifier.height(16.dp))
@@ -615,6 +638,7 @@ internal fun LyricsColorPickerDialog(
                             onColorSelected = { previewBackgroundColor = it },
                             onCustomColorRequested = {
                                 customPickerInitialColor = previewBackgroundColor
+                                customPickerPresets = backgroundOptions
                                 activeCustomColorTarget = "bg"
                             }
                         )
@@ -627,6 +651,7 @@ internal fun LyricsColorPickerDialog(
                             onColorSelected = { previewTextColor = it },
                             onCustomColorRequested = {
                                 customPickerInitialColor = previewTextColor
+                                customPickerPresets = textOptions
                                 activeCustomColorTarget = "text"
                             }
                         )
@@ -639,6 +664,7 @@ internal fun LyricsColorPickerDialog(
                             onColorSelected = { previewSecondaryTextColor = it },
                             onCustomColorRequested = {
                                 customPickerInitialColor = previewSecondaryTextColor
+                                customPickerPresets = secondaryTextOptions
                                 activeCustomColorTarget = "secondary"
                             }
                         )
@@ -742,6 +768,7 @@ private fun ColorPickerRow(
 @Composable
 private fun CustomColorPickerDialog(
     initialColor: Color,
+    presetColors: List<Color> = emptyList(),
     onDismiss: () -> Unit,
     onColorPicked: (Color) -> Unit
 ) {
@@ -795,6 +822,57 @@ private fun CustomColorPickerDialog(
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp
                     )
+                }
+
+                // Preset Colors Swatches Row
+                if (presetColors.isNotEmpty()) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = "Presets",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .horizontalScroll(rememberScrollState())
+                            .fillMaxWidth()
+                    ) {
+                        presetColors.forEach { preset ->
+                            val isSelected = currentColor == preset
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(preset)
+                                    .border(
+                                        width = if (isSelected) 2.5.dp else 1.dp,
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.25f),
+                                        shape = CircleShape
+                                    )
+                                    .clickable {
+                                        val newHsv = FloatArray(3)
+                                        android.graphics.Color.colorToHSV(preset.toArgb(), newHsv)
+                                        hue = newHsv[0]
+                                        saturation = newHsv[1]
+                                        value = newHsv[2]
+                                        alpha = preset.alpha
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isSelected) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.check),
+                                        contentDescription = null,
+                                        tint = if (preset.luminance() > 0.5f) Color.Black else Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 Spacer(Modifier.height(14.dp))
