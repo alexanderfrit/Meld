@@ -484,9 +484,9 @@ internal fun LyricsColorPickerDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .verticalScroll(rememberScrollState())
-                    .padding(18.dp)
+                    .padding(16.dp)
             ) {
-                // Top Header Row: Title & Close Action
+                // Header with Title, App Logo Toggle & Close Button
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -494,19 +494,34 @@ internal fun LyricsColorPickerDialog(
                 ) {
                     Text(
                         stringResource(R.string.share_lyrics),
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    IconButton(onClick = onDismiss, modifier = Modifier.size(34.dp)) {
-                        Icon(
-                            painter = painterResource(R.drawable.close),
-                            contentDescription = stringResource(R.string.cancel),
-                            modifier = Modifier.size(20.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            stringResource(R.string.show_app_name),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        Switch(
+                            checked = showAppBranding,
+                            onCheckedChange = { showAppBranding = it },
+                            modifier = Modifier.scale(0.75f)
+                        )
+                        IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
+                            Icon(
+                                painter = painterResource(R.drawable.close),
+                                contentDescription = stringResource(R.string.cancel),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
                 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(10.dp))
                 
                 // Ambient Gradient Calculations
                 val ambientTopColor = remember(previewBackgroundColor) {
@@ -530,14 +545,14 @@ internal fun LyricsColorPickerDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(22.dp))
+                        .clip(RoundedCornerShape(20.dp))
                         .background(
                             when (bgStyle) {
                                 LyricsBackgroundStyle.SOLID -> ambientGradientBrush
                                 else -> Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.6f), Color.Black.copy(alpha = 0.8f)))
                             }
                         )
-                        .padding(14.dp),
+                        .padding(12.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     LyricsImageCard(
@@ -559,85 +574,56 @@ internal fun LyricsColorPickerDialog(
                     )
                 }
                 
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(12.dp))
                 
-                // Card Style & Alignment Options Card
-                Surface(
-                    shape = RoundedCornerShape(18.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
+                // Background Style Filter Chips (Solid, Blur, Gradient)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        // Background Style Segmented Controls
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            LyricsBackgroundStyle.entries.forEach { style ->
-                                val (label, iconRes) = when(style) {
-                                    LyricsBackgroundStyle.SOLID -> stringResource(R.string.player_background_solid) to R.drawable.palette
-                                    LyricsBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur) to R.drawable.insert_photo
-                                    else -> stringResource(R.string.gradient) to R.drawable.gradient
-                                }
-                                val isSelected = bgStyle == style
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { bgStyle = style },
-                                    label = { Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1) },
-                                    leadingIcon = {
-                                        Icon(painter = painterResource(iconRes), contentDescription = null, modifier = Modifier.size(16.dp))
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
+                    LyricsBackgroundStyle.entries.forEach { style ->
+                        val (label, iconRes) = when(style) {
+                            LyricsBackgroundStyle.SOLID -> stringResource(R.string.player_background_solid) to R.drawable.palette
+                            LyricsBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur) to R.drawable.insert_photo
+                            else -> stringResource(R.string.gradient) to R.drawable.gradient
                         }
-
-                        // Text Alignment Segmented Controls
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            val alignments = listOf(
-                                TextAlign.Start to stringResource(R.string.align_left),
-                                TextAlign.Center to stringResource(R.string.align_center),
-                                TextAlign.End to stringResource(R.string.align_right)
-                            )
-                            alignments.forEach { (align, label) ->
-                                val isSelected = selectedAlignment == align
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { selectedAlignment = align },
-                                    label = { Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1) },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-
-                        // Show App Logo Toggle Row
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 4.dp, vertical = 2.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                stringResource(R.string.show_app_name),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Switch(
-                                checked = showAppBranding,
-                                onCheckedChange = { showAppBranding = it }
-                            )
-                        }
+                        val isSelected = bgStyle == style
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { bgStyle = style },
+                            label = { Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 1) },
+                            leadingIcon = {
+                                Icon(painter = painterResource(iconRes), contentDescription = null, modifier = Modifier.size(14.dp))
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(4.dp))
+
+                // Text Alignment Filter Chips
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    val alignments = listOf(
+                        TextAlign.Start to stringResource(R.string.align_left),
+                        TextAlign.Center to stringResource(R.string.align_center),
+                        TextAlign.End to stringResource(R.string.align_right)
+                    )
+                    alignments.forEach { (align, label) ->
+                        val isSelected = selectedAlignment == align
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedAlignment = align },
+                            label = { Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 1) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
 
                 // Tabbed Expressive Color Selector & Continuous Ribbon
                 Surface(
@@ -766,9 +752,9 @@ internal fun LyricsColorPickerDialog(
                     }
                 }
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(14.dp))
 
-                // Bottom Dual Action Bar: Share Text (Secondary Outlined) & Share Image (Primary Filled)
+                // Bottom Dual Action Bar: Perfectly Centered Icons and Text
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -783,17 +769,27 @@ internal fun LyricsColorPickerDialog(
                             context.startActivity(Intent.createChooser(intent, null))
                         },
                         shape = RoundedCornerShape(24.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp)
                     ) {
-                        Icon(
-                            painter = painterResource(R.drawable.share),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(stringResource(R.string.share_as_text_action), style = MaterialTheme.typography.titleSmall, maxLines = 1)
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.share),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = stringResource(R.string.share_as_text_action),
+                                style = MaterialTheme.typography.titleSmall,
+                                maxLines = 1
+                            )
+                        }
                     }
 
                     Button(
@@ -801,17 +797,27 @@ internal fun LyricsColorPickerDialog(
                             onShare(previewBackgroundColor, previewTextColor, previewSecondaryTextColor, bgStyle, selectedAlignment, showAppBranding)
                         },
                         shape = RoundedCornerShape(24.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp)
                     ) {
-                        Icon(
-                            painter = painterResource(R.drawable.insert_photo),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(stringResource(R.string.share_as_image), style = MaterialTheme.typography.titleSmall, maxLines = 1)
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.insert_photo),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = stringResource(R.string.share_as_image),
+                                style = MaterialTheme.typography.titleSmall,
+                                maxLines = 1
+                            )
+                        }
                     }
                 }
             }
