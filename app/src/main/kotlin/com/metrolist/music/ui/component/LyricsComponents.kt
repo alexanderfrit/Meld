@@ -608,8 +608,8 @@ internal fun LyricsColorPickerDialog(
                             LyricsBackgroundStyle.entries.forEach { style ->
                                 val (label, iconRes) = when(style) {
                                     LyricsBackgroundStyle.SOLID -> stringResource(R.string.player_background_solid) to R.drawable.palette
-                                    LyricsBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur) to R.drawable.image
-                                    else -> stringResource(R.string.gradient) to R.drawable.sparkles
+                                    LyricsBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur) to R.drawable.insert_photo
+                                    else -> stringResource(R.string.gradient) to R.drawable.gradient
                                 }
                                 val isSelected = bgStyle == style
                                 FilterChip(
@@ -633,29 +633,17 @@ internal fun LyricsColorPickerDialog(
                             // Text Alignment Segmented Buttons
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 val alignments = listOf(
-                                    Triple(TextAlign.Start, R.drawable.align_left, stringResource(R.string.align_left)),
-                                    Triple(TextAlign.Center, R.drawable.align_center, stringResource(R.string.align_center)),
-                                    Triple(TextAlign.End, R.drawable.align_right, stringResource(R.string.align_right))
+                                    TextAlign.Start to stringResource(R.string.align_left),
+                                    TextAlign.Center to stringResource(R.string.align_center),
+                                    TextAlign.End to stringResource(R.string.align_right)
                                 )
-                                alignments.forEach { (align, iconRes, contentDesc) ->
+                                alignments.forEach { (align, label) ->
                                     val isSelected = selectedAlignment == align
-                                    IconButton(
+                                    FilterChip(
+                                        selected = isSelected,
                                         onClick = { selectedAlignment = align },
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .background(
-                                                if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                                                else Color.Transparent
-                                            )
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(iconRes),
-                                            contentDescription = contentDesc,
-                                            tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
+                                        label = { Text(label, style = MaterialTheme.typography.labelMedium) }
+                                    )
                                 }
                             }
 
