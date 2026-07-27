@@ -873,7 +873,7 @@ fun ExperimentalLyrics(
                             showAppBranding = showAppBranding
                         )
                         val uri = ComposeToImage.saveBitmapAsFile(context, image, "lyrics_${System.currentTimeMillis()}")
-                        ComposeToImage.shareLyricsImage(context, uri)
+                        ComposeToImage.shareToSystemChooser(context, uri)
                     } catch (e: Exception) {
                         Toast.makeText(context, context.getString(R.string.failed_to_create_image, e.message), Toast.LENGTH_SHORT).show()
                     } finally {

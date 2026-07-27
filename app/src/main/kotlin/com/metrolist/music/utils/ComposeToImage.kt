@@ -5,9 +5,11 @@
 
 package com.metrolist.music.utils
 
+import android.content.ActivityNotFoundException
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import timber.log.Timber
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -181,16 +183,26 @@ object ComposeToImage {
 
         when (backgroundStyle) {
             LyricsBackgroundStyle.SOLID -> {
-                // Darken solid background for the outer 9:16 backdrop unless already very dark
-                val hsv = FloatArray(3)
-                android.graphics.Color.colorToHSV(bgColor, hsv)
-                val outerBgColor = if (hsv[2] > 0.25f) {
-                    hsv[2] = (hsv[2] * 0.50f).coerceIn(0f, 1f)
-                    android.graphics.Color.HSVToColor(android.graphics.Color.alpha(bgColor), hsv)
-                } else {
-                    bgColor
-                }
-                fullBgPaint.color = outerBgColor
+                // YouTube Music Ambient Vignette Gradient (100% color-cohesive with card)
+                val hsvTop = FloatArray(3)
+                val hsvBottom = FloatArray(3)
+                android.graphics.Color.colorToHSV(bgColor, hsvTop)
+                android.graphics.Color.colorToHSV(bgColor, hsvBottom)
+
+                hsvTop[2] = (hsvTop[2] * 0.92f).coerceIn(0.15f, 0.95f)
+                hsvBottom[2] = (hsvBottom[2] * 0.78f).coerceIn(0.10f, 0.82f)
+                hsvBottom[1] = (hsvBottom[1] * 1.05f).coerceIn(0f, 1f)
+
+                val topColor = android.graphics.Color.HSVToColor(android.graphics.Color.alpha(bgColor), hsvTop)
+                val bottomColor = android.graphics.Color.HSVToColor(android.graphics.Color.alpha(bgColor), hsvBottom)
+
+                val gradient = LinearGradient(
+                    0f, 0f, 0f, canvasHeightInt.toFloat(),
+                    intArrayOf(topColor, bottomColor),
+                    null,
+                    Shader.TileMode.CLAMP
+                )
+                fullBgPaint.shader = gradient
                 canvas.drawRect(fullCanvasRect, fullBgPaint)
             }
             LyricsBackgroundStyle.BLUR -> {
@@ -263,8 +275,10 @@ object ComposeToImage {
 
         // Card Inner Border
         val borderPaint = Paint().apply {
-            color = mainTextColor
-            alpha = (255 * 0.12).toInt()
+            val hsvCard = FloatArray(3)
+            android.graphics.Color.colorToHSV(bgColor, hsvCard)
+            color = if (hsvCard[2] < 0.35f) 0xFFFFFFFF.toInt() else mainTextColor
+            alpha = (255 * 0.15).toInt()
             style = Paint.Style.STROKE
             strokeWidth = 1.5f * scale
             isAntiAlias = true
@@ -302,14 +316,14 @@ object ComposeToImage {
 
         val titlePaint = TextPaint().apply {
             color = mainTextColor
-            textSize = 14f * scale
+            textSize = 10.5f * scale
             typeface = Typeface.DEFAULT_BOLD
             isAntiAlias = true
         }
         
         val artistPaint = TextPaint().apply {
             color = secondaryTxtColor
-            textSize = 11.5f * scale
+            textSize = 10.5f * scale
             typeface = Typeface.DEFAULT
             isAntiAlias = true
         }
@@ -648,5 +662,31 @@ object ComposeToImage {
                 imageFile
             )
         }
+    }
+
+    fun shareToInstagramStory(context: Context, uri: Uri) {
+        val instagramIntent = Intent("com.instagram.share.ADD_TO_STORY").apply {
+            type = "image/png"
+            putExtra("interactive_asset_uri", uri)
+            putExtra("source_application", context.packageName)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.grantUriPermission("com.instagram.android", uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+        try {
+            context.startActivity(instagramIntent)
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(context, context.getString(R.string.instagram_not_installed), Toast.LENGTH_SHORT).show()
+            shareToSystemChooser(context, uri)
+        }
+    }
+
+    fun shareToSystemChooser(context: Context, uri: Uri) {
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "image/png"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_lyrics)))
     }
 }
