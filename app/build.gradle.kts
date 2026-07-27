@@ -90,24 +90,34 @@ android {
             storePassword = "android"
             keyAlias = "androiddebugkey"
             keyPassword = "android"
+            isV1SigningEnabled = true
+            isV2SigningEnabled = true
         }
         create("workflowDebug") {
             storeFile = workflowDebugKeystoreFile ?: persistentDebugKeystoreFile
             storePassword = debugKeystorePassword
             keyAlias = debugKeyAlias
             keyPassword = debugKeyPassword
+            isV1SigningEnabled = true
+            isV2SigningEnabled = true
         }
         create("release") {
-            storeFile = file("keystore/release.keystore")
+            val releaseKeystorePathOverride = (System.getenv("METROLIST_RELEASE_KEYSTORE_PATH") ?: System.getenv("KEYSTORE_PATH"))?.takeIf { it.isNotBlank() }
+            val releaseKeystoreFile = (releaseKeystorePathOverride ?: "keystore/release.keystore").let(::file)
+            storeFile = releaseKeystoreFile
             storePassword = System.getenv("STORE_PASSWORD")
             keyAlias = System.getenv("KEY_ALIAS")
             keyPassword = System.getenv("KEY_PASSWORD")
+            isV1SigningEnabled = true
+            isV2SigningEnabled = true
         }
         getByName("debug") {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
             storePassword = "android"
             storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
+            isV1SigningEnabled = true
+            isV2SigningEnabled = true
         }
     }
 
@@ -121,6 +131,18 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            val releaseKeystorePathOverride = (System.getenv("METROLIST_RELEASE_KEYSTORE_PATH") ?: System.getenv("KEYSTORE_PATH"))?.takeIf { it.isNotBlank() }
+            val releaseKeystoreFile = (releaseKeystorePathOverride ?: "keystore/release.keystore").let(::file)
+            signingConfig =
+                if (releaseKeystoreFile.exists() && !System.getenv("STORE_PASSWORD").isNullOrBlank()) {
+                    signingConfigs.getByName("release")
+                } else if (workflowDebugKeystoreFile != null) {
+                    signingConfigs.getByName("workflowDebug")
+                } else if (persistentDebugKeystoreFile.exists()) {
+                    signingConfigs.getByName("persistentDebug")
+                } else {
+                    signingConfigs.getByName("debug")
+                }
             ndk {
                 debugSymbolLevel = "NONE"
             }
